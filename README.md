@@ -57,6 +57,10 @@ terraform apply // to apply the infrastructure to GCP
 ```
 
 ### Finally
+![image info](Screenshot/vpc.png)
+
+![image info](Screenshot/subnets.png)
 
 ![image info](Screenshot/cluster.png)
+
 ![image info](Screenshot/vms.png)
