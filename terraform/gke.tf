@@ -1,6 +1,6 @@
 resource "google_container_cluster" "private_cluster" {
-  name                     = "private_cluster"
-  location                 = "asia-east1-a"
+  name                     = "private-cluster"
+  location                 = "asia-east1"
   remove_default_node_pool = true
   initial_node_count       = 1
   network                  = google_compute_network.vpc.self_link
@@ -22,6 +22,12 @@ resource "google_container_cluster" "private_cluster" {
     }
   }
 
+  master_authorized_networks_config {
+    cidr_blocks {
+        cidr_block = "10.1.0.0/18"
+        display_name = "management_subnet"
+    }
+  }
   release_channel {
     channel = "REGULAR"
   }
@@ -42,14 +48,12 @@ resource "google_container_cluster" "private_cluster" {
   }
 
 }
-#--------------------------"node-pool"-----------------------
-resource "google_service_account" "kubernetes" {
-  account_id = "kubernetes"
-}
 
-resource "google_container_node_pool" "general" {
-  name       = "general"
-  cluster    = google_container_cluster.private_cluster.id
+#-------------------------"node-pool"-----------------------
+resource "google_container_node_pool" "cluster_node_pool" {
+  name       = "cluster-node-pool"
+  location   = "asia-east1"
+  cluster    = google_container_cluster.private_cluster.name
   node_count = 1
 
   management {
@@ -60,11 +64,6 @@ resource "google_container_node_pool" "general" {
   node_config {
     preemptible  = false
     machine_type = "e2-small"
-
-    labels = {
-      role = "general"
-    }
-
     service_account = google_service_account.kubernetes.email
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"
@@ -72,37 +71,16 @@ resource "google_container_node_pool" "general" {
   }
 }
 
-resource "google_container_node_pool" "spot" {
-  name    = "spot"
-  cluster = google_container_cluster.private_cluster.id
-
-  management {
-    auto_repair  = true
-    auto_upgrade = true
-  }
-
-  autoscaling {
-    min_node_count = 0
-    max_node_count = 10
-  }
-
-  node_config {
-    preemptible  = true
-    machine_type = "e2-small"
-
-    labels = {
-      team = "devops"
-    }
-
-    taint {
-      key    = "instance_type"
-      value  = "spot"
-      effect = "NO_SCHEDULE"
-    }
-
-    service_account = google_service_account.kubernetes.email
-    oauth_scopes = [
-      "https://www.googleapis.com/auth/cloud-platform"
-    ]
-  }
+#--------------------------"service account"-----------------------
+resource "google_service_account" "kubernetes" {
+  account_id = "kubernetes"
+  display_name = "sa-gke"
 }
+
+resource "google_project_iam_member" "gke_sa_viewer" {
+  project = "khalifa-iti-project"
+  role = "roles/storage.objectViewer"
+  member = "serviceAccount:${google_service_account.kubernetes.email}"
+}
+
+
