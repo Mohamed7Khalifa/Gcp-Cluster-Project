@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      name: devops-challenge-app
+  template:
+    metadata:
+      labels:
+        name: devops-challenge-app
+    spec:
+      containers:
+      - name: devops-challenge-app
+        image: gcr.io/khalifa-iti-project/devops-challenge-image
+        ports:
+        - containerPort: 80
+        envFrom:
+        - configMapRef:
+            name: devops-challenge-cm 
